@@ -56,7 +56,7 @@ Download
 
 4.在bash 輸入git init
 
-5.git clone --recurse-submodules https://github.com/QIU0908/2407024-nfu-ComforMitt.git
+5.git clone --recurse-submodules [https://github.com/QIU0908/2407024-nfu-ComforMitt.git](https://github.com/41123122/xuanmo/blob/main/README.md)
 
 git config --global user.name "John Doe"
 
