@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>玄默的同步筆記本</title>
+    <style>
+        body { margin: 0; display: flex; height: 100vh; font-family: sans-serif; background-color: #f5f6fa; }
+        .sidebar { width: 280px; background: #2f3640; color: white; padding: 20px; display: flex; flex-direction: column; }
+        input#titleInput { width: 100%; padding: 10px; border-radius: 5px; border: none; margin-bottom: 10px; box-sizing: border-box; }
+        .add-btn { width: 100%; padding: 10px; background: #44bd32; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #historyList { flex-grow: 1; overflow-y: auto; margin-top: 15px; }
+        .item-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #353b48; }
+        .history-item { flex-grow: 1; padding: 12px; background: transparent; color: #f5f6fa; border: none; text-align: left; cursor: pointer; }
+        .history-item:focus { background: #3d4654; outline: none; }
+        .delete-btn { background: transparent; color: #e84118; border: none; cursor: pointer; padding: 10px; font-weight: bold; }
+        .main-content { flex: 1; padding: 30px; display: flex; flex-direction: column; }
+        .editor-container { background: white; padding: 25px; border-radius: 15px; height: 90%; display: flex; flex-direction: column; }
+        textarea { flex: 1; padding: 20px; font-size: 18px; border: 1px solid #ddd; border-radius: 10px; resize: none; }
+        .save-btn { margin-top: 20px; padding: 15px; background: #0097e6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>📒 目錄</h2>
+        <input type="text" id="titleInput" placeholder="新標題...">
+        <button class="add-btn" onclick="addNewTitle()">＋ 新增筆記</button>
+        <div id="historyList">
+            {% for title in titles %}
+            <div class="item-container">
+                <button class="history-item" onclick="loadContent('{{ title }}')">{{ title }}</button>
+                <button class="delete-btn" onclick="deleteTitle('{{ title }}')">×</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="editor-container">
+            <h2 id="current-title">請選擇或新增標題...</h2>
+            <textarea id="textContent" placeholder="在這裡寫點什麼..."></textarea>
+            <button class="save-btn" onclick="saveCurrentContent()">💾 儲存內容</button>
+        </div>
+    </div>
+
+    <script>
+        let currentActiveTitle = "";
+
+        function loadContent(title) {
+            currentActiveTitle = title;
+            document.getElementById('current-title').innerText = "編輯： " + title;
+            fetch(`/get_content/${encodeURIComponent(title)}`).then(res => res.json()).then(data => {
+                document.getElementById('textContent').value = data.content;
+            });
+        }
+
+        function saveCurrentContent() {
+            if (!currentActiveTitle) return alert("請先選擇標題");
+            const content = document.getElementById('textContent').value;
+            fetch("/save_all", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: currentActiveTitle, content: content })
+            }).then(() => alert("✅ 同步存檔成功"));
+        }
+
+        function addNewTitle() {
+            const title = document.getElementById('titleInput').value.trim();
+            if (!title) return;
+            fetch("/save_all", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: title, content: "" })
+            }).then(() => location.reload());
+        }
+
+        function deleteTitle(title) {
+            if (!confirm("確定刪除？")) return;
+            fetch("/delete_title", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: title })
+            }).then(() => location.reload());
+        }
+
+        // --- 核心同步邏輯：載入網頁後自動點擊第一個標題 ---
+        window.onload = function() {
+            const firstItem = document.querySelector('.history-item');
+            if (firstItem) {
+                firstItem.click();
+            }
+        };
+    </script>
+</body>
+</html>
